@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.juju.recipe_app",
+      "sha256_cert_fingerprints": [
+        "3C:6C:9A:CF:F5:41:A0:2F:F1:B0:34:72:77:C1:7C:BF:2C:EE:51:58:19:90:08:15:F8:89:A5:9E:8F:BE:76:A7"
+      ]
+    }
+  }
+]
