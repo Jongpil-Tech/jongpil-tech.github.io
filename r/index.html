@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>주주의 레시피</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; line-height: 1.6; color: #222; background: #fff; }
+    img { width: 100%; max-height: 320px; object-fit: cover; border-radius: 12px; }
+    h1 { margin: 16px 0 4px; }
+    .muted { color: #777; }
+    li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <main id="app"><p class="muted">레시피를 불러오는 중...</p></main>
+
+  <script>
+    // 공개돼도 되는 값 (보안은 Supabase의 get_shared_recipe 함수가 담당)
+    const SUPABASE_URL = 'https://qrkdnlftujjslttfgxrg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Qb_-yvN8A2Y-XcJk7sNxzA_5rQ6_lLX';
+
+    const app = document.getElementById('app');
+
+    // 레시피 내용은 사용자가 입력한 값이라, HTML로 해석되지 않도록 textContent로만 넣음
+    function add(parent, tag, text, className) {
+      const el = document.createElement(tag);
+      if (text != null) el.textContent = text;
+      if (className) el.className = className;
+      parent.appendChild(el);
+      return el;
+    }
+
+    function showMessage(text) {
+      app.replaceChildren();
+      add(app, 'p', text, 'muted');
+    }
+
+    async function load() {
+      const shareId = new URLSearchParams(location.search).get('id');
+
+      if (!shareId) {
+        return showMessage('잘못된 링크입니다.');
+      }
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_shared_recipe`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_share_id: shareId }),
+      });
+
+      const rows = res.ok ? await res.json() : [];
+
+      if (rows.length === 0) {
+        return showMessage('공유가 중지되었거나 없는 레시피입니다.');
+      }
+
+      const r = rows[0];
+      app.replaceChildren();
+
+      if (r.image_path) {
+        const img = add(app, 'img');
+        img.alt = r.title;
+
+        // 비공개 저장소라 <img src>로 바로 못 받고, 키를 붙여 받은 뒤 표시
+        fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/recipe-images/${r.image_path}`, {
+          headers: { apikey: SUPABASE_KEY },
+        })
+          .then((imgRes) => (imgRes.ok ? imgRes.blob() : Promise.reject()))
+          .then((blob) => { img.src = URL.createObjectURL(blob); })
+          .catch(() => img.remove());
+      }
+
+      add(app, 'h1', r.title);
+
+      if (r.calories != null) {
+        add(app, 'p', `${r.calories} kcal`, 'muted');
+      }
+
+      add(app, 'h2', '재료');
+      const ul = add(app, 'ul');
+      for (const i of r.ingredients) {
+        add(ul, 'li', [i.name, i.amount, i.unit].filter(Boolean).join(' '));
+      }
+
+      add(app, 'h2', '조리 방법');
+      const ol = add(app, 'ol');
+      for (const s of [...r.steps].sort((a, b) => a.step_order - b.step_order)) {
+        add(ol, 'li', s.content);
+      }
+    }
+
+    load().catch(() => showMessage('레시피를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
+  </script>
+</body>
+</html>
