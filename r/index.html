@@ -68,17 +68,14 @@
           `S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
       }
 
-      if (r.image_path) {
+      // 공개 저장소의 공유 사진 (이름은 공유 ID). 사진이 바뀌면 cacheNonce가 바뀌어 새 사진을 받음 (D-11). 사본이 아직 없으면 사진 없이 표시
+      if (r.image_version) {
         const img = add(app, 'img');
         img.alt = r.title;
-
-        // 비공개 저장소라 <img src>로 바로 못 받고, 키를 붙여 받은 뒤 표시
-        fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/recipe-images/${r.image_path}`, {
-          headers: { apikey: SUPABASE_KEY },
-        })
-          .then((imgRes) => (imgRes.ok ? imgRes.blob() : Promise.reject()))
-          .then((blob) => { img.src = URL.createObjectURL(blob); })
-          .catch(() => img.remove());
+        img.onerror = () => img.remove();
+        img.src =
+          `${SUPABASE_URL}/storage/v1/object/public/shared-images/${encodeURIComponent(shareId)}.jpg` +
+          `?cacheNonce=${encodeURIComponent(r.image_version)}`;
       }
 
       add(app, 'h1', r.title);
