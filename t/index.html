@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>주주의 다이어리</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; line-height: 1.6; color: #222; background: #fff; }
+    h1 { margin: 16px 0 4px; }
+    .muted { color: #777; }
+    .open-app { display: block; margin: 16px 0; padding: 12px; border-radius: 12px; background: #f57c00; color: #fff; text-align: center; text-decoration: none; font-weight: bold; }
+    .code { margin: 16px 0; padding: 12px; border-radius: 12px; background: #f5f5f5; text-align: center; font-family: ui-monospace, Consolas, monospace; font-size: 28px; letter-spacing: 4px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <main id="app"><p class="muted">초대를 확인하는 중...</p></main>
+
+  <script>
+    // 이 페이지는 서버에 아무것도 묻지 않음: 주소의 코드를 그대로 보여 줄 뿐이라, 코드를 맞혀 봐도 알 수 있는 게 없음 (코드는 로그인한 앱만 쓸 수 있음)
+    const app = document.getElementById('app');
+
+    // 값은 HTML로 해석되지 않도록 textContent로만 넣음
+    function add(parent, tag, text, className) {
+      const el = document.createElement(tag);
+      if (text != null) el.textContent = text;
+      if (className) el.className = className;
+      parent.appendChild(el);
+      return el;
+    }
+
+    function showMessage(text) {
+      app.replaceChildren();
+      add(app, 'p', text, 'muted');
+    }
+
+    // 앱과 같은 방식으로 정리: 대문자, 공백·대시 제거, O→0, I·L→1
+    function normalize(raw) {
+      return (raw || '').toUpperCase().replace(/[\s-]/g, '').replace(/O/g, '0').replace(/[IL]/g, '1');
+    }
+
+    const code = normalize(new URLSearchParams(location.search).get('c'));
+
+    if (!/^[0-9A-HJKMNP-TV-Z]{10}$/.test(code)) {
+      showMessage('잘못된 초대 링크입니다.');
+    } else {
+      app.replaceChildren();
+      add(app, 'h1', '여행 초대');
+      add(app, 'p', '주주의 다이어리에서 함께 쓰는 여행에 초대받았어요.');
+
+      // 카카오톡 등 인앱 브라우저에서는 App Links가 동작하지 않아, 안드로이드 intent 주소로 앱을 직접 엶
+      if (/Android/i.test(navigator.userAgent)) {
+        const openApp = add(app, 'a', '앱에서 열기', 'open-app');
+        openApp.href =
+          `intent://jongpil-tech.github.io/t/?c=${encodeURIComponent(code)}` +
+          '#Intent;scheme=https;package=com.juju.diary;' +
+          `S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
+      }
+
+      add(app, 'div', `${code.slice(0, 5)}-${code.slice(5)}`, 'code');
+      add(app, 'p', '앱이 열리지 않으면 주주의 다이어리 앱의 여행 → 코드로 참여에 이 코드를 넣어 주세요.', 'muted');
+    }
+  </script>
+</body>
+</html>
